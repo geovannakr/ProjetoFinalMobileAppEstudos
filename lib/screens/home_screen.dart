@@ -51,8 +51,18 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Bom dia, $userName!",
-                style: Theme.of(context).textTheme.titleLarge),
+            RichText(
+              text: TextSpan(
+                style: Theme.of(context).textTheme.titleLarge,
+                children: [
+                  TextSpan(text: "Bom dia, "),
+                  TextSpan(
+                    text: "$userName!",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
             SizedBox(height: 24),
             Card(
               elevation: 3,

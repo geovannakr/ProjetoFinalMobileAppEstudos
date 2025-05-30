@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/calendar_screen.dart';
+import 'screens/tasks_screen.dart';
+import 'screens/subjects_screen.dart';
+import 'screens/performance_screen.dart';
+import 'screens/profile_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -30,9 +35,15 @@ class _MyAppState extends State<MyApp> {
       theme: isDarkTheme ? ThemeData.dark() : ThemeData.light(),
       initialRoute: '/',
       routes: {
-        '/': (context) => LoginScreen(onThemeChanged: toggleTheme),
-        '/home': (context) => const HomeScreen(), // Precisa existir
-      },
+  '/': (context) => LoginScreen(onThemeChanged: toggleTheme),
+  '/home': (context) => const HomeScreen(),
+  '/calendar': (context) => CalendarScreen(),
+  '/tasks': (context) => TasksScreen(),
+  '/subjects': (context) => const SubjectsScreen(),
+  '/performance': (context) => PerformanceScreen(),
+  '/profile': (context) => const ProfileScreen(),
+},
+
     );
   }
 }
