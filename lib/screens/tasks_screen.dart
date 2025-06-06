@@ -2,11 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// 🔗 Notificador global dos eventos
 final ValueNotifier<Map<DateTime, List<String>>> eventNotifier = ValueNotifier({});
 
 class TasksScreen extends StatefulWidget {
-  const TasksScreen({Key? key}) : super(key: key);
+  const TasksScreen({super.key});
 
   @override
   State<TasksScreen> createState() => _TasksScreenState();
@@ -70,7 +69,7 @@ class _TasksScreenState extends State<TasksScreen> {
     try {
       final parts = dateStr.split('/');
       return DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
@@ -110,21 +109,6 @@ class _TasksScreenState extends State<TasksScreen> {
     _saveData();
   }
 
-  void _removePastExams() {
-    final today = _normalizeDate(DateTime.now());
-    setState(() {
-      _exams.removeWhere((exam) {
-        final date = _parseDate(exam['date']);
-        final shouldRemove = date != null && date.isBefore(today);
-        if (shouldRemove) {
-          _removeFromEventNotifier(exam['date']!, '${exam['type']} • ${exam['subject']}');
-        }
-        return shouldRemove;
-      });
-    });
-    _saveData();
-  }
-
   void _removeTask(int index) {
     final task = _tasks[index];
     _removeFromEventNotifier(task['dueDate'], '${task['title']} (${task['subject']})');
@@ -148,22 +132,27 @@ class _TasksScreenState extends State<TasksScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Nova Tarefa/Prova'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Nova Tarefa ou Prova',
+          style: TextStyle(
+            color: Color(0xFF1E88E5),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: titleController, decoration: InputDecoration(labelText: 'Título')),
-              TextField(controller: subjectController, decoration: InputDecoration(labelText: 'Matéria')),
-              TextField(
-                controller: dateController,
-                decoration: InputDecoration(labelText: 'Data (dd/mm/aaaa)'),
-                keyboardType: TextInputType.datetime,
-              ),
-              ValueListenableBuilder(
+              _buildTextField(titleController, 'Título'),
+              _buildTextField(subjectController, 'Matéria'),
+              _buildTextField(dateController, 'Data (dd/mm/aaaa)', keyboard: TextInputType.datetime),
+              const SizedBox(height: 8),
+              ValueListenableBuilder<bool>(
                 valueListenable: isExamController,
                 builder: (_, isExam, __) => CheckboxListTile(
-                  title: Text("É uma prova?"),
+                  activeColor: const Color(0xFF1E88E5),
+                  title: const Text("É uma prova?"),
                   value: isExam,
                   onChanged: (val) => isExamController.value = val ?? false,
                 ),
@@ -200,87 +189,198 @@ class _TasksScreenState extends State<TasksScreen> {
 
               _saveData();
               Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Adicionado com sucesso!'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
             },
-            child: Text('Salvar'),
+            child: const Text(
+              'Salvar',
+              style: TextStyle(
+                color: Color(0xFF1E88E5),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label, {
+    TextInputType keyboard = TextInputType.text,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboard,
+        style: const TextStyle(color: Colors.black),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.white70),
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.05),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          enabledBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.white54),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Color(0xFF1E88E5)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('Tarefas e Provas'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.delete),
-            tooltip: 'Remover provas passadas',
-            onPressed: _removePastExams,
-          ),
-        ],
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Tarefas e Provas',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            Text('Tarefas', style: Theme.of(context).textTheme.titleLarge),
-            ..._tasks.asMap().entries.map((entry) {
-              int index = entry.key;
-              var task = entry.value;
-              return Dismissible(
-                key: UniqueKey(),
-                direction: DismissDirection.endToStart,
-                onDismissed: (_) => _removeTask(index),
-                background: Container(
-                  color: Colors.red,
-                  alignment: Alignment.centerRight,
-                  padding: EdgeInsets.only(right: 20),
-                  child: Icon(Icons.delete, color: Colors.white),
-                ),
-                child: Card(
-                  child: CheckboxListTile(
-                    title: Text(task['title']),
-                    subtitle: Text(
-                        '${task['subject']} • Entrega: ${task['dueDate']} • Prioridade: ${task['priority']}'),
-                    value: task['done'],
-                    onChanged: (value) => _toggleTaskDone(index, value),
-                  ),
-                ),
-              );
-            }).toList(),
-            SizedBox(height: 24),
-            Text('Provas', style: Theme.of(context).textTheme.titleLarge),
-            ..._exams.asMap().entries.map((entry) {
-              int index = entry.key;
-              var exam = entry.value;
-              return Dismissible(
-                key: UniqueKey(),
-                direction: DismissDirection.endToStart,
-                onDismissed: (_) => _removeExam(index),
-                background: Container(
-                  color: Colors.red,
-                  alignment: Alignment.centerRight,
-                  padding: EdgeInsets.only(right: 20),
-                  child: Icon(Icons.delete, color: Colors.white),
-                ),
-                child: Card(
-                  child: ListTile(
-                    leading: Icon(Icons.assignment),
-                    title: Text('${exam['subject']}'),
-                    subtitle: Text('${exam['type']} • Data: ${exam['date']}'),
-                  ),
-                ),
-              );
-            }).toList(),
-          ],
+      body: Container(
+        width: size.width,
+        height: size.height,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF0F2027),
+              Color(0xFF203A43),
+              Color(0xFF2C5364),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionTitle('Tarefas'),
+                const SizedBox(height: 8),
+                ..._tasks.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final task = entry.value;
+                  return _buildDismissibleCard(
+                    onDismissed: () => _removeTask(index),
+                    child: CheckboxListTile(
+                      activeColor: const Color(0xFF1E88E5),
+                      title: Text(
+                        task['title'],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${task['subject']} • Entrega: ${task['dueDate']} • Prioridade: ${task['priority']}',
+                        style: TextStyle(color: Colors.white.withOpacity(0.75)),
+                      ),
+                      value: task['done'],
+                      onChanged: (val) => _toggleTaskDone(index, val),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 24),
+                _buildSectionTitle('Provas'),
+                const SizedBox(height: 8),
+                ..._exams.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final exam = entry.value;
+                  return _buildDismissibleCard(
+                    onDismissed: () => _removeExam(index),
+                    child: ListTile(
+                      leading: const Icon(Icons.assignment, color: Colors.lightBlueAccent),
+                      title: Text(
+                        exam['subject']!,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${exam['type']} • Data: ${exam['date']}',
+                        style: TextStyle(color: Colors.white.withOpacity(0.75)),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addTaskOrExam,
-        child: Icon(Icons.add),
-        tooltip: 'Adicionar tarefa ou prova',
+        backgroundColor: const Color(0xFF1E88E5),
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
+        tooltip: 'Adicionar',
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildDismissibleCard({required VoidCallback onDismissed, required Widget child}) {
+    return Dismissible(
+      key: UniqueKey(),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => onDismissed(),
+      background: Container(
+        decoration: BoxDecoration(
+          color: Colors.red.shade700,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: child,
       ),
     );
   }

@@ -31,39 +31,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : Colors.black;
-    final cardColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF6F6F6);
-    final iconColor = isDark ? Colors.blue[200] : Colors.blue[800];
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Resumo do Dia'),
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        foregroundColor: textColor,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sair',
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('isLoggedIn', false);
-              await prefs.remove('userName');
-              Navigator.pushReplacementNamed(context, '/');
-            },
-          ),
-        ],
-      ),
       drawer: Drawer(
         child: Container(
-          color: isDark ? const Color(0xFF121212) : Colors.white,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF0F2027),
+                Color(0xFF203A43),
+                Color(0xFF2C5364),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
           child: ListView(
             children: [
-              DrawerHeader(
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.blueGrey[800] : Colors.blueAccent,
-                ),
+              const DrawerHeader(
                 child: Align(
                   alignment: Alignment.bottomLeft,
                   child: Text(
@@ -84,74 +70,89 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            RichText(
-              text: TextSpan(
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontSize: 22,
-                      color: textColor,
-                    ),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Home',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      extendBodyBehindAppBar: true,
+      body: Container(
+        width: size.width,
+        height: size.height,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF0F2027),
+              Color(0xFF203A43),
+              Color(0xFF2C5364),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const TextSpan(text: "Bom dia, "),
-                  TextSpan(
-                    text: "$userName!",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  SizedBox(
+                    width: size.width * 0.3,
+                    height: size.width * 0.3,
+                    child: Image.asset(
+                      'lib/assets/image.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "Bem-vindo, $userName!",
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  _customCard(
+                    icon: Icons.class_,
+                    title: 'Aulas do Dia',
+                    subtitle: 'Matemática - 10h\nHistória - 13h',
+                  ),
+                  const SizedBox(height: 16),
+                  _customCard(
+                    icon: Icons.check_circle_outline,
+                    title: 'Tarefas Pendentes',
+                    subtitle:
+                        'Estudar capítulo 5 de História\nResolver exercícios de Matemática',
+                  ),
+                  const SizedBox(height: 24),
+                  _fullWidthButton(
+                    onTap: () => Navigator.pushNamed(context, '/tasks'),
+                    label: "Adicionar Tarefa",
+                    icon: Icons.add_task,
+                  ),
+                  const SizedBox(height: 16),
+                  _fullWidthButton(
+                    onTap: () => Navigator.pushNamed(context, '/calendar'),
+                    label: "Ver Calendário",
+                    icon: Icons.calendar_today,
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            _customCard(
-              icon: Icons.class_,
-              title: 'Aulas do Dia',
-              subtitle: 'Matemática - 10h\nHistória - 13h',
-              iconColor: Colors.black,
-              cardColor: cardColor,
-              textColor: textColor,
-            ),
-            const SizedBox(height: 16),
-            _customCard(
-              icon: Icons.check_box,
-              title: 'Tarefas Pendentes',
-              subtitle: 'Estudar capítulo 5 de História\nResolver exercícios de Matemática',
-              iconColor: Colors.black,
-              cardColor: cardColor,
-              textColor: textColor,
-            ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () => Navigator.pushNamed(context, '/tasks'),
-                  icon: const Icon(Icons.add),
-                  label: const Text("Adicionar Tarefa"),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    backgroundColor: Colors.blueAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => Navigator.pushNamed(context, '/calendar'),
-                  icon: const Icon(Icons.calendar_today),
-                  label: const Text("Ver Calendário"),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    backgroundColor: Colors.green.shade600,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -161,32 +162,36 @@ class _HomeScreenState extends State<HomeScreen> {
     required IconData icon,
     required String title,
     required String subtitle,
-    required Color iconColor,
-    required Color cardColor,
-    required Color textColor,
   }) {
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           )
         ],
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        leading: Icon(icon, color: iconColor, size: 28),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        leading: Icon(icon, color: Colors.lightBlueAccent, size: 32),
         title: Text(
           title,
-          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fontSize: 18,
+          ),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(color: textColor.withOpacity(0.75)),
+          style: TextStyle(color: Colors.white.withOpacity(0.75)),
         ),
       ),
     );
@@ -194,12 +199,41 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _drawerItem(IconData icon, String title, String route) {
     return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
+      leading: Icon(icon, color: Colors.white),
+      title: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
       onTap: () {
         Navigator.pop(context);
         Navigator.pushNamed(context, route);
       },
+    );
+  }
+
+  Widget _fullWidthButton({
+    required VoidCallback onTap,
+    required String label,
+    required IconData icon,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon),
+        label: Text(label),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF1E88E5),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
     );
   }
 }

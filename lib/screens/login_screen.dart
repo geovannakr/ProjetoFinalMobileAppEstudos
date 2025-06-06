@@ -1,161 +1,172 @@
-import 'dart:convert';
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _isLoading = false;
 
-  bool isLoading = false;
+  Future<void> _login() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
 
-  Future<void> loginUser() async {
-    String email = emailController.text.trim();
-    String password = passwordController.text.trim();
+      try {
+        final res = await Supabase.instance.client.auth.signInWithPassword(
+          email: emailController.text,
+          password: passwordController.text,
+        );
 
-    if (email.isEmpty || password.isEmpty) {
-      showMessage('Preencha todos os campos');
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      final response = await http.post(
-        Uri.parse('https://user-api-6z73.onrender.com/api/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
-      ).timeout(const Duration(seconds: 30));
-
-      print('Status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        late Map<String, dynamic> data;
-        try {
-          data = jsonDecode(response.body);
-          print('Dados decodificados: $data');
-        } catch (e) {
-          showMessage('Erro ao interpretar resposta. Detalhes: $e');
-          return;
+        if (res.user != null) {
+          Navigator.pushReplacementNamed(context, '/home');
         }
-
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isLoggedIn', true);
-        await prefs.setString('userEmail', email);
-        await prefs.setString('userName', data['name']?.toString() ?? '');
-
-        Navigator.pushReplacementNamed(context, '/home');
-      } else if (response.statusCode == 404) {
-        showMessage('Usuário não cadastrado.');
-      } else if (response.statusCode == 401) {
-        showMessage('Senha incorreta.');
-      } else {
-        showMessage('Erro no login. Código: ${response.statusCode}');
+      } on AuthException catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      } finally {
+        setState(() => _isLoading = false);
       }
-    } on TimeoutException {
-      showMessage('Tempo de conexão esgotado. Tente novamente.');
-    } catch (e) {
-      showMessage('Erro: $e');
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-      print('Finalizou login');
     }
-  }
-
-  void showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  }
-
-  void navigateToRegister() {
-    Navigator.pushNamed(context, '/register');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Login'),
-        backgroundColor: const Color(0xFF0077FF),
-      ),
-      body: SafeArea(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF0F2027),
+              Color(0xFF203A43),
+              Color(0xFF2C5364),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.all(24),
           child: Center(
             child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  const SizedBox(height: 24),
-                  TextField(
-                    controller: emailController,
-                    decoration: inputDecoration('Email', Icons.email),
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: passwordController,
-                    obscureText: true,
-                    decoration: inputDecoration('Senha', Icons.lock),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      style: elevatedButtonStyle(),
-                      onPressed: isLoading ? null : loginUser,
-                      child: isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('Entrar', style: TextStyle(fontSize: 18)),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: 300,
+                        maxHeight: 300,
+                      ),
+                      child: Image.asset(
+                        'lib/assets/image.png',
+                        fit: BoxFit.contain,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: isLoading ? null : navigateToRegister,
-                    child: const Text(
-                      'Não tem conta? Cadastre-se',
-                      style: TextStyle(color: Color(0xFF0077FF)),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "StudyFlow",
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 32),
+                    TextFormField(
+                      controller: emailController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.1),
+                        labelText: 'Email',
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        prefixIcon: const Icon(Icons.email, color: Colors.white70),
+                      ),
+                      validator: (value) => value == null || !value.contains('@')
+                          ? 'Email inválido'
+                          : null,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: passwordController,
+                      obscureText: _obscurePassword,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.1),
+                        labelText: 'Senha',
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        prefixIcon: const Icon(Icons.lock, color: Colors.white70),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                            color: Colors.white70,
+                          ),
+                          onPressed: () {
+                            setState(() => _obscurePassword = !_obscurePassword);
+                          },
+                        ),
+                      ),
+                      validator: (value) =>
+                          value == null || value.isEmpty ? 'Informe a senha' : null,
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: Tooltip(
+                        message: _isLoading ? 'Processando login...' : 'Entrar no app',
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1E88E5),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: _isLoading ? null : _login,
+                          child: _isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : const Text(
+                                  "Entrar",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  InputDecoration inputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      filled: true,
-      fillColor: Colors.grey[100],
-    );
-  }
-
-  ButtonStyle elevatedButtonStyle() {
-    return ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFF0077FF),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
       ),
     );
   }
