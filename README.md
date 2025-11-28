@@ -72,5 +72,3 @@ Este projeto foi desenvolvido por:
 * **Geovanna de Sousa Krüger** – [GitHub](https://github.com/geovannakr)
 * **Isabeli Ferreira** – [GitHub](https://github.com/isabelic)
 * **Paulo Stiphen** – [GitHub](https://github.com/paulostiphen)
-Agora o **README.md** segue o mesmo padrão dos outros, sem emojis. Ele está organizado e claro, destacando as principais funcionalidades e tecnologias do **StudyFlow** de maneira objetiva. Se precisar de mais algum ajuste, estou à disposição!
-```
